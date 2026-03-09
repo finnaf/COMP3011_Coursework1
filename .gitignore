@@ -1,2 +1,4 @@
 .~lock*
 __pycache__
+*.db
+*.env

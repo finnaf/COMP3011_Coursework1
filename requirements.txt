@@ -3,3 +3,4 @@ uvicorn
 sqlalchemy
 pandas
 python-dateutil
+pydantic
