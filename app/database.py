@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 load_dotenv()
 DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./outflows.db")
 
-# still using sqlite locally
+# currently using sqlite
 connect_args = {"check_same_thread": False} if DATABASE_URL.startswith("sqlite") else {}
 engine = create_engine(DATABASE_URL, connect_args=connect_args)
 

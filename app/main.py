@@ -9,17 +9,24 @@ from app.utils.import_csv import import_csv
 import os
 
 @asynccontextmanager
-async def lifespan(app: FastAPI):
+async def lifespan(_: FastAPI):
     Base.metadata.create_all(bind=engine)
     
     db = SessionLocal()
     count = db.query(Outflow).count()
     if count == 0:
         print("Database empty. Fetching data from streamwaterdata...")
+
         csv_files = [
+            "./streamwaterdata/Anglian_Water_Storm_Overflow.csv",
             "./streamwaterdata/Northumbrian_Water_Storm_Overflow.csv",
             "./streamwaterdata/Severn_Trent_Water_Storm_Overflow.csv",
-            "./streamwaterdata/anglian_water.csv",
+            "./streamwaterdata/South_West_Water_Storm_Overflow.csv",
+            "./streamwaterdata/Southern_Water_Storm_Overflow.csv",
+            "./streamwaterdata/Thames_Water_Storm_Overflow.csv",
+            "./streamwaterdata/United_Utilities_Storm_Overflow.csv",
+            "./streamwaterdata/Wessex_Water_Storm_Overflow.csv",
+            "./streamwaterdata/Yorkshire_Water_Storm_Overflow.csv"
         ]
         
         for f in csv_files:
