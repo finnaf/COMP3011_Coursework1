@@ -55,9 +55,17 @@ def read_outflow(id: int, db: Session = Depends(get_db)):
 def read_outflows(
     company: Optional[str] = None,
     watercourse: Optional[str] = None,
-    db: Session = Depends(get_db)
+    lat: Optional[float] = None,
+    lon: Optional[float] = None,
+    radius_km: Optional[float] = None,
+    limit: int = 100,
+    skip: int = 0,
+    db: Session = Depends(get_db),
 ):
-    return crud.get_outflows(db, company, watercourse)
+    '''
+    Gets all outflows in database. Default behaviour fetches first 100.
+    '''
+    return crud.get_outflows(db, company, watercourse, lat, lon, radius_km, limit, skip)
 
 @app.post("/outflows/", response_model=schemas.Outflow, dependencies=[Depends(security.verify_api_key)])
 def create_outflow(data: schemas.OutflowBase, db: Session = Depends(get_db)):
@@ -84,6 +92,20 @@ def create_key(data: schemas.APIKeyCreate, db: Session = Depends(get_db)):
     user_key, db_key = crud.create_api_key(db, owner=data.owner, active=data.active)
     return {"id": db_key.id, "key": user_key, "owner": db_key.owner, "active": db_key.active}
 
+@app.put("/auth/keys", dependencies=[Depends(security.verify_admin)])
+def rotate_key(data: schemas.APIKeyCreate, db: Session = Depends(get_db)):
+    '''
+    For compromised API keys. Deactivates the old key and generates a completely new key.
+    '''
+    user_key, db_key = crud.rotate_api_key(db, owner=data.owner, active=data.active)
+    return {"id": db_key.id, "key": user_key, "owner": db_key.owner, "active": db_key.active}
+
+@app.delete("/auth/keys", dependencies=[Depends(security.verify_admin)])
+def delete_key(data: schemas.APIKeyCreate, db: Session = Depends(get_db)):
+    ok = crud.delete_api_key(db, owner=data.owner, active=data.active)
+    if not ok:
+        raise HTTPException(404, "Not found")
+    return {"deleted": True}
 
 # silence 404 icon request by browser
 @app.get("/favicon.ico", include_in_schema=False)
