@@ -46,13 +46,9 @@ def import_csv(path):
     db.commit()
     db.close()
 
-    print("db: added" + path)
-
 if __name__ == "__main__":
-
-    
-    import_csv("./streamwaterdata/Northumbrian_Water_Storm_Overflow_Activity_2_view_7786664318972578633.csv")
-    import_csv("./streamwaterdata/Severn_Trent_Water_Storm_Overflow_Activity_6481331589752484693.csv")
+    import_csv("./streamwaterdata/Northumbrian_Water_Storm_Overflow.csv")
+    import_csv("./streamwaterdata/Severn_Trent_Water_Storm_Overflow.csv")
     import_csv("./streamwaterdata/anglian_water.csv")
 
     print("successfully imported csv data")

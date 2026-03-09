@@ -1,9 +1,35 @@
 from fastapi import FastAPI, Depends, HTTPException, Response
+from contextlib import asynccontextmanager
 from sqlalchemy.orm import Session
-from .database import SessionLocal
-from app import crud, schemas
 
-app = FastAPI(title="UK Storm Overflow API")
+from app import crud, schemas
+from app.database import SessionLocal, engine
+from app.models import Base, Outflow
+from app.utils.import_csv import import_csv
+import os
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    Base.metadata.create_all(bind=engine)
+    
+    db = SessionLocal()
+    count = db.query(Outflow).count()
+    if count == 0:
+        print("Database empty. Fetching data from streamwaterdata...")
+        csv_files = [
+            "./streamwaterdata/Northumbrian_Water_Storm_Overflow.csv",
+            "./streamwaterdata/Severn_Trent_Water_Storm_Overflow.csv",
+            "./streamwaterdata/anglian_water.csv",
+        ]
+        
+        for f in csv_files:
+            if os.path.exists(f):
+                import_csv(f)
+
+    db.close()
+    yield
+
+app = FastAPI(lifespan=lifespan, title="UK Storm Overflow API")    
 
 def get_db():
     db = SessionLocal()

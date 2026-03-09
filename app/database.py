@@ -1,8 +1,10 @@
 import os
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, declarative_base
+from dotenv import load_dotenv
 
-DATABASE_URL = os.getenv("DATABASE_URL")
+load_dotenv()
+DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./outflows.db")
 
 # still using sqlite locally
 connect_args = {"check_same_thread": False} if DATABASE_URL.startswith("sqlite") else {}
