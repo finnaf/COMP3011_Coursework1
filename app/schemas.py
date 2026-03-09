@@ -14,11 +14,18 @@ class OutflowBase(BaseModel):
     receiving_watercourse: Optional[str]
     last_updated: Optional[datetime]
 
-class OutflowCreate(OutflowBase):
-    pass
-
 class Outflow(OutflowBase):
     id: int
 
+    class Config:
+        from_attributes = True
+
+class APIKeyCreate(BaseModel):
+    active: bool
+    owner: Optional[str]
+    
+class APIKey(APIKeyCreate):
+    id: int
+    
     class Config:
         from_attributes = True
