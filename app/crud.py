@@ -2,8 +2,8 @@ from typing import Optional
 from datetime import datetime
 from sqlalchemy import select, func, text
 from sqlalchemy.orm import Session
-from .models import Outflow, APIKey
-from .schemas import OutflowBase
+from .models import Outflow, WaterCompany, APIKey
+from .schemas import OutflowBase, WaterCompanyBase
 from .security import generate_api_key
 
 # outflow
@@ -71,6 +71,72 @@ def delete_outflow(db: Session, id: int):
     if not obj:
         return False
     db.delete(obj)
+    db.commit()
+    return True
+
+
+WATER_COMPANIES = [
+    {"ticker": "AWS", "name": "Anglian Water",         "region": "East of England",        "website": "https://www.anglianwater.co.uk"},
+    {"ticker": "NWL", "name": "Northumbrian Water",    "region": "North East England",     "website": "https://www.nwl.co.uk"},
+    {"ticker": "SVT", "name": "Severn Trent Water",    "region": "Midlands",               "website": "https://www.severntrent.com"},
+    {"ticker": "SBB", "name": "South West Water",      "region": "South West England",     "website": "https://www.southwestwater.co.uk"},
+    {"ticker": "SWS", "name": "Southern Water",        "region": "South East England",     "website": "https://www.southernwater.co.uk"},
+    {"ticker": "TWL",  "name": "Thames Water",         "region": "London & Thames Valley", "website": "https://www.thameswater.co.uk"},
+    {"ticker": "UUP",  "name": "United Utilities",     "region": "North West England",     "website": "https://www.unitedutilities.com"},
+    {"ticker": "WXW", "name": "Wessex Water",          "region": "South West England",     "website": "https://www.wessexwater.co.uk"},
+    {"ticker": "YWS", "name": "Yorkshire Water",       "region": "Yorkshire",              "website": "https://www.yorkshirewater.com"},
+]
+
+def seed_companies(db: Session):
+    if db.query(WaterCompany).count() == 0:
+        for data in WATER_COMPANIES:
+            db.add(WaterCompany(**data))
+        db.commit()
+
+
+def get_company(db: Session, ticker: str):
+    return db.query(WaterCompany).filter(WaterCompany.ticker == ticker.upper()).first()
+
+
+def get_companies(
+    db: Session,
+    name: str | None = None,
+    region: str | None = None,
+    limit: int = 100,
+    skip: int = 0,
+):
+    q = db.query(WaterCompany)
+    if name:
+        q = q.filter(WaterCompany.name.ilike(f"%{name}%"))
+    if region:
+        q = q.filter(WaterCompany.region.ilike(f"%{region}%"))
+    return q.offset(skip).limit(limit).all()
+
+
+def create_company(db: Session, data: WaterCompanyBase):
+    company = WaterCompany(**data.model_dump())
+    db.add(company)
+    db.commit()
+    db.refresh(company)
+    return company
+
+
+def update_company(db: Session, ticker: str, data: WaterCompanyBase):
+    company = db.query(WaterCompany).filter(WaterCompany.ticker == ticker.upper()).first()
+    if not company:
+        return None
+    for field, value in data.model_dump(exclude_unset=True).items():
+        setattr(company, field, value)
+    db.commit()
+    db.refresh(company)
+    return company
+
+
+def delete_company(db: Session, ticker: str):
+    company = db.query(WaterCompany).filter(WaterCompany.ticker == ticker.upper()).first()
+    if not company:
+        return False
+    db.delete(company)
     db.commit()
     return True
 

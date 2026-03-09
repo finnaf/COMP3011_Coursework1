@@ -1,11 +1,21 @@
 from datetime import datetime
-from sqlalchemy import Column, Integer, String, Float, DateTime, Boolean
+from sqlalchemy import Column, Integer, String, Float, DateTime, Boolean, ForeignKey
 from .database import Base
+
+class WaterCompany(Base):
+    __tablename__ = "companies"
+    
+    ticker = Column(String, primary_key=True)
+    name = Column(String, unique=True, nullable=False)
+    region = Column(String, nullable=True)
+    website = Column(String, nullable=True)
 
 class Outflow(Base):
     __tablename__ = "outflows"
 
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    
+    company_ticker = Column(String(6), ForeignKey("companies.ticker"))
 
     site_id = Column(String, index=True)
     company = Column(String, index=True)
@@ -20,11 +30,6 @@ class Outflow(Base):
 
     receiving_watercourse = Column(String)
     last_updated = Column(DateTime)
-
-class WaterCompany(Base):
-    __tablename__ = "companies"
-    
-    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
  
 class APIKey(Base):
     __tablename__ = "api_keys"

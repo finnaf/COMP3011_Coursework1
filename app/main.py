@@ -16,10 +16,12 @@ import os
 async def lifespan(_: FastAPI):
     Base.metadata.create_all(bind=engine)
     
-    db = SessionLocal()
+    db = SessionLocal()    
     count = db.query(Outflow).count()
     if count == 0:
         print("Database empty. Fetching data from streamwaterdata...")
+        
+        crud.seed_companies(db)
 
         csv_files = [
             "./streamwaterdata/Anglian_Water_Storm_Overflow.csv",
@@ -81,6 +83,49 @@ def update_outflow(id: int, data: dict, db: Session = Depends(get_db)):
 @app.delete("/outflows/{id}", dependencies=[Depends(security.verify_api_key)])
 def delete_outflow(id: int, db: Session = Depends(get_db)):
     ok = crud.delete_outflow(db, id)
+    if not ok:
+        raise HTTPException(404, "Not found")
+    return {"deleted": True}
+
+
+# water companies
+@app.get("/companies/{ticker}", response_model=schemas.WaterCompany)
+def read_company(ticker: str, db: Session = Depends(get_db)):
+    result = crud.get_company(db, ticker)
+    if not result:
+        raise HTTPException(404, "Not found")
+    return result
+
+@app.get("/companies/", response_model=list[schemas.WaterCompany])
+def read_companies(
+    name: Optional[str] = None,
+    region: Optional[str] = None,
+    limit: int = 100,
+    skip: int = 0,
+    db: Session = Depends(get_db),
+):
+    '''
+    Gets all water companies. Optionally filter by name or region.
+    '''
+    return crud.get_companies(db, name=name, region=region, limit=limit, skip=skip)
+
+@app.post("/companies/", response_model=schemas.WaterCompany, dependencies=[Depends(security.verify_api_key)])
+def create_company(data: schemas.WaterCompanyCreate, db: Session = Depends(get_db)):
+    existing = crud.get_company(db, data.ticker)
+    if existing:
+        raise HTTPException(400, f"Company with ticker '{data.ticker}' already exists")
+    return crud.create_company(db, data)
+
+@app.put("/companies/{ticker}", response_model=schemas.WaterCompany, dependencies=[Depends(security.verify_api_key)])
+def update_company(ticker: str, data: schemas.WaterCompanyUpdate, db: Session = Depends(get_db)):
+    updated = crud.update_company(db, ticker, data)
+    if not updated:
+        raise HTTPException(404, "Not found")
+    return updated
+
+@app.delete("/companies/{ticker}", dependencies=[Depends(security.verify_api_key)])
+def delete_company(ticker: str, db: Session = Depends(get_db)):
+    ok = crud.delete_company(db, ticker)
     if not ok:
         raise HTTPException(404, "Not found")
     return {"deleted": True}

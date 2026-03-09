@@ -20,6 +20,18 @@ class Outflow(OutflowBase):
     class Config:
         from_attributes = True
 
+
+class WaterCompanyBase(BaseModel):
+    ticker: str
+    name: str
+    region: Optional[str] = None
+    website: Optional[str] = None
+
+class WaterCompany(WaterCompanyBase):
+    class Config:
+        from_attributes = True
+
+
 class APIKeyCreate(BaseModel):
     active: bool
     owner: Optional[str]
