@@ -10,6 +10,7 @@ from app.database import SessionLocal, engine
 from app.models import Base, Outflow
 from app.utils.import_csv import import_csv
 from app.security import get_db
+from app.stats import get_company_performance_stats
 import os
 
 # on startup
@@ -57,6 +58,10 @@ async def response_validation_handler(request, exc):
 
 
 # outflows
+@app.get("/outflows/stats/")
+def get_outflow_stats(db: Session = Depends(get_db)):
+    return None
+
 @app.get("/outflows/{id}",
     response_model=schemas.Outflow,
     status_code=200)
@@ -106,6 +111,12 @@ def delete_outflow(id: int, db: Session = Depends(get_db)):
 
 
 # water companies
+@app.get("/companies/stats", 
+    response_model=list[schemas.CompanyStats],
+    status_code=200)
+def get_companies_stats(db: Session = Depends(get_db)):
+    return get_company_performance_stats(db)
+
 @app.get("/companies/", 
     response_model=list[schemas.WaterCompany],
     status_code=200)
@@ -141,7 +152,7 @@ def create_company(data: schemas.WaterCompanyBase, db: Session = Depends(get_db)
     response_model=schemas.WaterCompany,
     dependencies=[Depends(security.verify_api_key)],
     status_code=200)
-def update_company(ticker: str, data: schemas.WaterCompanyBase, db: Session = Depends(get_db)):
+def update_company(ticker: str, data: schemas.WaterCompanyUpdate, db: Session = Depends(get_db)):
     updated = crud.update_company(db, ticker, data)
     if not updated:
         raise HTTPException(404, "Not found")
@@ -153,7 +164,6 @@ def delete_company(ticker: str, db: Session = Depends(get_db)):
     if not ok:
         raise HTTPException(404, "Not found")
     return Response(status_code=204)
-
 
 # authentication
 @app.post("/auth/keys", dependencies=[Depends(security.verify_admin)])

@@ -25,6 +25,13 @@ class WaterCompanyBase(BaseModel):
     region: Optional[str] = None
     website: Optional[str] = None
 
+# so puts can change any field
+class WaterCompanyUpdate(BaseModel):
+    ticker: Optional[str] = None
+    name: Optional[str] = None
+    region: Optional[str] = None
+    website: Optional[str] = None
+
 class WaterCompany(WaterCompanyBase):
     model_config = ConfigDict(from_attributes=True)
 
@@ -36,3 +43,16 @@ class APIKeyCreate(BaseModel):
 class APIKey(APIKeyCreate):
     id: int
     model_config = ConfigDict(from_attributes=True)
+
+
+# stat return schemas
+class CompanyStats(BaseModel):
+    name: str
+    ticker: str
+    total_sites: int
+    active_now: int
+    deactivated: int
+    total_duration_days: float | None # julianday
+
+    class Config:
+        from_attributes = True

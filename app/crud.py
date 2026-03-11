@@ -1,10 +1,10 @@
 from typing import Optional
 from datetime import datetime
 from dateutil import parser as dateparser
-from sqlalchemy import select, func, text
+from sqlalchemy import select, func
 from sqlalchemy.orm import Session
 from .models import Outflow, WaterCompany, APIKey
-from .schemas import OutflowBase, WaterCompanyBase
+from .schemas import OutflowBase, WaterCompanyBase, WaterCompanyUpdate
 from .security import generate_api_key
 
 
@@ -50,7 +50,7 @@ def create_company(db: Session, data: WaterCompanyBase):
     db.refresh(company)
     return company
 
-def update_company(db: Session, ticker: str, data: WaterCompanyBase):
+def update_company(db: Session, ticker: str, data: WaterCompanyUpdate):
     company = db.query(WaterCompany).filter(WaterCompany.ticker == ticker.upper()).first()
     if not company:
         return None
