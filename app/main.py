@@ -46,49 +46,8 @@ async def lifespan(_: FastAPI):
 
 app = FastAPI(lifespan=lifespan, title="UK Storm Overflow API")
 
-# exception handlers
-@app.exception_handler(RequestValidationError)
-async def request_validation_handler(request, exc):
-    return JSONResponse(status_code=422, content={"detail": exc.errors()})
-
-@app.exception_handler(ResponseValidationError)
-async def response_validation_handler(request, exc):
-    print("RESPONSE VALIDATION ERROR:", exc.errors())
-    return JSONResponse(status_code=500, content={"detail": str(exc.errors())})
-
 
 # outflows
-@app.get("/outflows/stats/", status_code=200)
-def read_outflow_stats(db: Session = Depends(get_db)):
-    stats = get_outflow_stats(db)
-    
-    active_pct = (stats.active_now / stats.total_sites * 100) if stats.total_sites > 0 else 0
-    
-    return {
-        "summary": {
-            "total_sites": stats.total_sites,
-            "active_now": stats.active_now,
-            "offline_now": stats.offline_now,
-            "active_percentage": round(active_pct, 2)
-        },
-        "environmental_impact": {
-            "unique_waterways_affected": stats.unique_waterways,
-            "total_discharge_hours": round((stats.total_spill_days or 0) * 24, 1)
-        },
-        "metadata": {
-            "last_updated": stats.last_sync
-        }
-    }
-
-@app.get("/outflows/{id}",
-    response_model=schemas.Outflow,
-    status_code=200)
-def read_outflow(id: int, db: Session = Depends(get_db)):
-    result = crud.get_outflow(db, id)
-    if not result:
-        raise HTTPException(404, "Not found")
-    return result
-
 @app.get("/outflows/", 
     response_model=list[schemas.Outflow],
     status_code=200)
@@ -103,6 +62,15 @@ def read_outflows(
     db: Session = Depends(get_db),
 ):
     return crud.get_outflows(db, company, watercourse, lat, lon, radius_km, limit, skip)
+
+@app.get("/outflows/{id}",
+    response_model=schemas.Outflow,
+    status_code=200)
+def read_outflow(id: int, db: Session = Depends(get_db)):
+    result = crud.get_outflow(db, id)
+    if not result:
+        raise HTTPException(404, "Not found")
+    return result
 
 @app.post("/outflows/", 
     response_model=schemas.Outflow,
@@ -129,12 +97,6 @@ def delete_outflow(id: int, db: Session = Depends(get_db)):
 
 
 # water companies
-@app.get("/companies/stats", 
-    response_model=list[schemas.CompanyStats],
-    status_code=200)
-def get_companies_stats(db: Session = Depends(get_db)):
-    return get_company_performance_stats(db)
-
 @app.get("/companies/", 
     response_model=list[schemas.WaterCompany],
     status_code=200)
@@ -212,6 +174,51 @@ def delete_key(id: int, db: Session = Depends(get_db)):
         raise HTTPException(404, "Not found")
     return Response(status_code=204)
 
+
+# stats
+@app.get("/")
+@app.get("/stats")
+def foo():
+    return Response(status_code=200)
+
+@app.get("/stats/outflows/", status_code=200)
+def read_outflow_stats(db: Session = Depends(get_db)):
+    stats = get_outflow_stats(db)
+    
+    active_pct = (stats.active_now / stats.total_sites * 100) if stats.total_sites > 0 else 0
+    
+    return {
+        "summary": {
+            "total_sites": stats.total_sites,
+            "active_now": stats.active_now,
+            "offline_now": stats.offline_now,
+            "active_percentage": round(active_pct, 2)
+        },
+        "environmental_impact": {
+            "unique_waterways_affected": stats.unique_waterways,
+            "total_discharge_hours": round((stats.total_spill_days or 0) * 24, 1)
+        },
+        "metadata": {
+            "last_updated": stats.last_sync
+        }
+    }
+
+@app.get("/stats/companies", 
+    response_model=list[schemas.CompanyStats],
+    status_code=200)
+def get_companies_stats(db: Session = Depends(get_db)):
+    return get_company_performance_stats(db)
+
+
+# exception handlers
+@app.exception_handler(RequestValidationError)
+async def request_validation_handler(request, exc):
+    return JSONResponse(status_code=422, content={"detail": exc.errors()})
+
+@app.exception_handler(ResponseValidationError)
+async def response_validation_handler(request, exc):
+    print("RESPONSE VALIDATION ERROR:", exc.errors())
+    return JSONResponse(status_code=500, content={"detail": str(exc.errors())})
 
 # icon request by browser
 @app.get("/favicon.ico", include_in_schema=False)
