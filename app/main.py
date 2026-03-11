@@ -10,7 +10,7 @@ from app.database import SessionLocal, engine
 from app.models import Base, Outflow
 from app.utils.import_csv import import_csv
 from app.security import get_db
-from app.stats import get_company_performance_stats
+from app.stats import get_company_performance_stats, get_outflow_stats
 import os
 
 # on startup
@@ -58,9 +58,27 @@ async def response_validation_handler(request, exc):
 
 
 # outflows
-@app.get("/outflows/stats/")
-def get_outflow_stats(db: Session = Depends(get_db)):
-    return None
+@app.get("/outflows/stats/", status_code=200)
+def read_outflow_stats(db: Session = Depends(get_db)):
+    stats = get_outflow_stats(db)
+    
+    active_pct = (stats.active_now / stats.total_sites * 100) if stats.total_sites > 0 else 0
+    
+    return {
+        "summary": {
+            "total_sites": stats.total_sites,
+            "active_now": stats.active_now,
+            "offline_now": stats.offline_now,
+            "active_percentage": round(active_pct, 2)
+        },
+        "environmental_impact": {
+            "unique_waterways_affected": stats.unique_waterways,
+            "total_discharge_hours": round((stats.total_spill_days or 0) * 24, 1)
+        },
+        "metadata": {
+            "last_updated": stats.last_sync
+        }
+    }
 
 @app.get("/outflows/{id}",
     response_model=schemas.Outflow,

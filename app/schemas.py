@@ -54,5 +54,4 @@ class CompanyStats(BaseModel):
     deactivated: int
     total_duration_days: float | None # julianday
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
