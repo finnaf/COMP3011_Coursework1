@@ -30,7 +30,7 @@ class WaterCompany(WaterCompanyBase):
 
 
 class APIKeyCreate(BaseModel):
-    active: bool
+    active: bool = True
     owner: Optional[str] = None
     
 class APIKey(APIKeyCreate):

@@ -1,12 +1,13 @@
 from typing import Optional
-from fastapi import FastAPI, Depends, HTTPException, Response, Security
-from fastapi.security.api_key import APIKeyHeader
+from fastapi import FastAPI, Depends, HTTPException, Response
+from fastapi.exceptions import ResponseValidationError, RequestValidationError
+from fastapi.responses import JSONResponse
 from contextlib import asynccontextmanager
 from sqlalchemy.orm import Session
 
 from app import crud, schemas, security
 from app.database import SessionLocal, engine
-from app.models import Base, Outflow, APIKey
+from app.models import Base, Outflow
 from app.utils.import_csv import import_csv
 from app.security import get_db
 import os
@@ -42,7 +43,17 @@ async def lifespan(_: FastAPI):
     db.close()
     yield
 
-app = FastAPI(lifespan=lifespan, title="UK Storm Overflow API")    
+app = FastAPI(lifespan=lifespan, title="UK Storm Overflow API")
+
+# exception handlers
+@app.exception_handler(RequestValidationError)
+async def request_validation_handler(request, exc):
+    return JSONResponse(status_code=422, content={"detail": exc.errors()})
+
+@app.exception_handler(ResponseValidationError)
+async def response_validation_handler(request, exc):
+    print("RESPONSE VALIDATION ERROR:", exc.errors())
+    return JSONResponse(status_code=500, content={"detail": str(exc.errors())})
 
 
 # outflows
@@ -64,9 +75,6 @@ def read_outflows(
     skip: int = 0,
     db: Session = Depends(get_db),
 ):
-    '''
-    Gets all outflows in database. Default behaviour fetches first 100.
-    '''
     return crud.get_outflows(db, company, watercourse, lat, lon, radius_km, limit, skip)
 
 @app.post("/outflows/", response_model=schemas.Outflow, dependencies=[Depends(security.verify_api_key)])
@@ -85,17 +93,10 @@ def delete_outflow(id: int, db: Session = Depends(get_db)):
     ok = crud.delete_outflow(db, id)
     if not ok:
         raise HTTPException(404, "Not found")
-    return {"deleted": True}
+    return Response(status_code=204)
 
 
 # water companies
-@app.get("/companies/{ticker}", response_model=schemas.WaterCompany)
-def read_company(ticker: str, db: Session = Depends(get_db)):
-    result = crud.get_company(db, ticker)
-    if not result:
-        raise HTTPException(404, "Not found")
-    return result
-
 @app.get("/companies/", response_model=list[schemas.WaterCompany])
 def read_companies(
     name: Optional[str] = None,
@@ -105,6 +106,13 @@ def read_companies(
     db: Session = Depends(get_db),
 ):
     return crud.get_companies(db, name=name, region=region, limit=limit, skip=skip)
+
+@app.get("/companies/{ticker}", response_model=schemas.WaterCompany)
+def read_company(ticker: str, db: Session = Depends(get_db)):
+    result = crud.get_company(db, ticker)
+    if not result:
+        raise HTTPException(404, "Not found")
+    return result
 
 @app.post("/companies/", response_model=schemas.WaterCompany, dependencies=[Depends(security.verify_api_key)])
 def create_company(data: schemas.WaterCompanyBase, db: Session = Depends(get_db)):
@@ -125,39 +133,39 @@ def delete_company(ticker: str, db: Session = Depends(get_db)):
     ok = crud.delete_company(db, ticker)
     if not ok:
         raise HTTPException(404, "Not found")
-    return {"deleted": True}
+    return Response(status_code=204)
 
 
 # authentication
 @app.post("/auth/keys", dependencies=[Depends(security.verify_admin)])
 def create_key(data: schemas.APIKeyCreate, db: Session = Depends(get_db)):
     user_key, db_key = crud.create_api_key(db, owner=data.owner, active=data.active)
-    return {"id": db_key.id, "key": user_key, "owner": db_key.owner, "active": db_key.active}
+    return JSONResponse(
+        {"id": db_key.id, "key": user_key, "owner": db_key.owner, "active": db_key.active},
+        status_code=201
+    )
 
 @app.put("/auth/keys", dependencies=[Depends(security.verify_admin)])
 def rotate_key(data: schemas.APIKeyCreate, db: Session = Depends(get_db)):
     '''
     For compromised API keys. Deactivates the old key and generates a completely new key.
     '''
-    user_key, db_key = crud.rotate_api_key(db, owner=data.owner, active=data.active)
-    return {"id": db_key.id, "key": user_key, "owner": db_key.owner, "active": db_key.active}
+    user_key, db_key = crud.rotate_api_key(db, id)
+    if not (user_key or db_key):
+        return HTTPException(404, "API key not found")
+    return JSONResponse(
+        {"id": db_key.id, "key": user_key, "owner": db_key.owner, "active": db_key.active},
+        status_code=201
+    )
 
 @app.delete("/auth/keys", dependencies=[Depends(security.verify_admin)])
 def delete_key(data: schemas.APIKeyCreate, db: Session = Depends(get_db)):
-    ok = crud.delete_api_key(db, owner=data.owner, active=data.active)
+    ok = crud.delete_api_key(db, id)
     if not ok:
         raise HTTPException(404, "Not found")
-    return {"deleted": True}
+    return Response(status_code=204)
 
 # silence 404 icon request by browser
 @app.get("/favicon.ico", include_in_schema=False)
 async def favicon():
     return Response(content="", media_type="image/x-icon")
-
-from fastapi.exceptions import ResponseValidationError
-from fastapi.responses import JSONResponse
-
-@app.exception_handler(ResponseValidationError)
-async def validation_exception_handler(request, exc):
-    print("RESPONSE VALIDATION ERROR:", exc.errors())
-    return JSONResponse(status_code=500, content={"detail": str(exc.errors())})
