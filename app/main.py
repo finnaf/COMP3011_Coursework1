@@ -57,14 +57,18 @@ async def response_validation_handler(request, exc):
 
 
 # outflows
-@app.get("/outflows/{id}", response_model=schemas.Outflow)
+@app.get("/outflows/{id}",
+    response_model=schemas.Outflow,
+    status_code=200)
 def read_outflow(id: int, db: Session = Depends(get_db)):
     result = crud.get_outflow(db, id)
     if not result:
         raise HTTPException(404, "Not found")
     return result
 
-@app.get("/outflows/", response_model=list[schemas.Outflow])
+@app.get("/outflows/", 
+    response_model=list[schemas.Outflow],
+    status_code=200)
 def read_outflows(
     company: Optional[str] = None,
     watercourse: Optional[str] = None,
@@ -77,11 +81,16 @@ def read_outflows(
 ):
     return crud.get_outflows(db, company, watercourse, lat, lon, radius_km, limit, skip)
 
-@app.post("/outflows/", response_model=schemas.Outflow, dependencies=[Depends(security.verify_api_key)])
+@app.post("/outflows/", 
+    response_model=schemas.Outflow,
+    dependencies=[Depends(security.verify_api_key)],
+    status_code=201)
 def create_outflow(data: schemas.OutflowBase, db: Session = Depends(get_db)):
     return crud.create_outflow(db, data)
 
-@app.put("/outflows/{id}", dependencies=[Depends(security.verify_api_key)])
+@app.put("/outflows/{id}", 
+    dependencies=[Depends(security.verify_api_key)],
+    status_code=200)
 def update_outflow(id: int, data: dict, db: Session = Depends(get_db)):
     updated = crud.update_outflow(db, id, data)
     if not updated:
@@ -97,7 +106,9 @@ def delete_outflow(id: int, db: Session = Depends(get_db)):
 
 
 # water companies
-@app.get("/companies/", response_model=list[schemas.WaterCompany])
+@app.get("/companies/", 
+    response_model=list[schemas.WaterCompany],
+    status_code=200)
 def read_companies(
     name: Optional[str] = None,
     region: Optional[str] = None,
@@ -107,21 +118,29 @@ def read_companies(
 ):
     return crud.get_companies(db, name=name, region=region, limit=limit, skip=skip)
 
-@app.get("/companies/{ticker}", response_model=schemas.WaterCompany)
+@app.get("/companies/{ticker}", 
+    response_model=schemas.WaterCompany,
+    status_code=200)
 def read_company(ticker: str, db: Session = Depends(get_db)):
     result = crud.get_company(db, ticker)
     if not result:
         raise HTTPException(404, "Not found")
     return result
 
-@app.post("/companies/", response_model=schemas.WaterCompany, dependencies=[Depends(security.verify_api_key)])
+@app.post("/companies/",
+    response_model=schemas.WaterCompany,
+    dependencies=[Depends(security.verify_api_key)],
+    status_code=201)
 def create_company(data: schemas.WaterCompanyBase, db: Session = Depends(get_db)):
     existing = crud.get_company(db, data.ticker)
     if existing:
         raise HTTPException(400, f"Company with ticker '{data.ticker}' already exists")
     return crud.create_company(db, data)
 
-@app.put("/companies/{ticker}", response_model=schemas.WaterCompany, dependencies=[Depends(security.verify_api_key)])
+@app.put("/companies/{ticker}", 
+    response_model=schemas.WaterCompany,
+    dependencies=[Depends(security.verify_api_key)],
+    status_code=200)
 def update_company(ticker: str, data: schemas.WaterCompanyBase, db: Session = Depends(get_db)):
     updated = crud.update_company(db, ticker, data)
     if not updated:
@@ -145,8 +164,8 @@ def create_key(data: schemas.APIKeyCreate, db: Session = Depends(get_db)):
         status_code=201
     )
 
-@app.put("/auth/keys", dependencies=[Depends(security.verify_admin)])
-def rotate_key(data: schemas.APIKeyCreate, db: Session = Depends(get_db)):
+@app.put("/auth/keys/{id}", dependencies=[Depends(security.verify_admin)])
+def rotate_key(id: int, db: Session = Depends(get_db)):
     '''
     For compromised API keys. Deactivates the old key and generates a completely new key.
     '''
@@ -158,14 +177,15 @@ def rotate_key(data: schemas.APIKeyCreate, db: Session = Depends(get_db)):
         status_code=201
     )
 
-@app.delete("/auth/keys", dependencies=[Depends(security.verify_admin)])
-def delete_key(data: schemas.APIKeyCreate, db: Session = Depends(get_db)):
+@app.delete("/auth/keys/{id}", dependencies=[Depends(security.verify_admin)])
+def delete_key(id: int, db: Session = Depends(get_db)):
     ok = crud.delete_api_key(db, id)
     if not ok:
         raise HTTPException(404, "Not found")
     return Response(status_code=204)
 
-# silence 404 icon request by browser
+
+# icon request by browser
 @app.get("/favicon.ico", include_in_schema=False)
 async def favicon():
     return Response(content="", media_type="image/x-icon")
