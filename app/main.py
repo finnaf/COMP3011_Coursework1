@@ -104,20 +104,17 @@ def read_companies(
     skip: int = 0,
     db: Session = Depends(get_db),
 ):
-    '''
-    Gets all water companies. Optionally filter by name or region.
-    '''
     return crud.get_companies(db, name=name, region=region, limit=limit, skip=skip)
 
 @app.post("/companies/", response_model=schemas.WaterCompany, dependencies=[Depends(security.verify_api_key)])
-def create_company(data: schemas.WaterCompanyCreate, db: Session = Depends(get_db)):
+def create_company(data: schemas.WaterCompanyBase, db: Session = Depends(get_db)):
     existing = crud.get_company(db, data.ticker)
     if existing:
         raise HTTPException(400, f"Company with ticker '{data.ticker}' already exists")
     return crud.create_company(db, data)
 
 @app.put("/companies/{ticker}", response_model=schemas.WaterCompany, dependencies=[Depends(security.verify_api_key)])
-def update_company(ticker: str, data: schemas.WaterCompanyUpdate, db: Session = Depends(get_db)):
+def update_company(ticker: str, data: schemas.WaterCompanyBase, db: Session = Depends(get_db)):
     updated = crud.update_company(db, ticker, data)
     if not updated:
         raise HTTPException(404, "Not found")
@@ -156,3 +153,11 @@ def delete_key(data: schemas.APIKeyCreate, db: Session = Depends(get_db)):
 @app.get("/favicon.ico", include_in_schema=False)
 async def favicon():
     return Response(content="", media_type="image/x-icon")
+
+from fastapi.exceptions import ResponseValidationError
+from fastapi.responses import JSONResponse
+
+@app.exception_handler(ResponseValidationError)
+async def validation_exception_handler(request, exc):
+    print("RESPONSE VALIDATION ERROR:", exc.errors())
+    return JSONResponse(status_code=500, content={"detail": str(exc.errors())})

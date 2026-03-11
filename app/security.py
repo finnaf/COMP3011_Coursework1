@@ -25,8 +25,10 @@ api_key_header = APIKeyHeader(name="X-API_KEY")
 
 async def verify_api_key(key: str = Security(api_key_header), db: Session = Depends(get_db)):
     '''
-    Checks the given API key matches a stored key.
+    Checks the given API key matches a stored key or the admin key
     '''
+    if (key == ADMIN_KEY):
+        return key
     hashed_key = hashlib.sha256(key.encode()).hexdigest()
     
     stored = db.query(APIKey).filter(APIKey.key == hashed_key, APIKey.active == True).first()

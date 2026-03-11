@@ -1,5 +1,6 @@
 # run with python -m app.utils.import_csv
 # from https://www.streamwaterdata.co.uk/pages/storm-overflows-data
+
 import pandas as pd
 from sqlalchemy.orm import Session
 from app.models import Outflow
@@ -9,22 +10,22 @@ from dateutil import parser
 Base.metadata.create_all(bind=engine)
 
 COMPANY_TICKERS = {
-    "Anglian Water":       "AWS",
-    "Northumbrian Water":  "NWL",
-    "Severn Trent Water":  "SVT",
-    "South West Water":    "SBB",
-    "Southern Water":      "SWS",
-    "Thames Water":        "TWL",
-    "United Utilities":    "UUP",
-    "Wessex Water":        "WXW",
-    "Yorkshire Water":     "YWS",
+    "Anglian Water Services":   "AWS",
+    "Northumbrian Water Ltd":   "NWL",
+    "Severn Trent Water":       "SVT",
+    "South West Water":         "SBB",
+    "Southern Water":           "SWS",
+    "Thames Water":             "TWL",
+    "United Utilities":         "UUP",
+    "Wessex Water":             "WXW",
+    "Yorkshire Water":          "YWS",
 }
 
 def import_csv(path: str):
     df = pd.read_csv(path)
     df.columns = [c.lower() for c in df.columns]
     df = df.rename(columns={
-        "id":                   "site_number",
+        "id":                   "site_id",
         "company":              "company_name",
         "status":               "status",
         "statusstart":          "status_start",
@@ -47,11 +48,8 @@ def import_csv(path: str):
             print(f"Warning: unknown company '{company_name}', skipping row")
             continue
 
-        site_number = str(row.get("site_number", "")).strip()
-        outflow_id = f"{ticker}-{site_number}"
-
         record = Outflow(
-            id=outflow_id,
+            site_id=row["site_id"],
             company_ticker=ticker,
             status=row.get("status"),
             status_start=parser.parse(row["status_start"]) if pd.notna(row.get("status_start")) else None,

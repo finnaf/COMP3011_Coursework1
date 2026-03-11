@@ -1,24 +1,22 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from datetime import datetime
 from typing import Optional
 
 class OutflowBase(BaseModel):
-    site_id: Optional[str]
-    company: Optional[str]
-    status: Optional[int]
-    status_start: Optional[datetime]
-    latest_event_start: Optional[datetime]
-    latest_event_end: Optional[datetime]
-    latitude: Optional[float]
-    longitude: Optional[float]
-    receiving_watercourse: Optional[str]
-    last_updated: Optional[datetime]
+    site_id: Optional[str] = None
+    company_ticker: Optional[str] = None
+    status: Optional[int] = None
+    status_start: Optional[datetime] = None
+    latest_event_start: Optional[datetime] = None
+    latest_event_end: Optional[datetime] = None
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
+    receiving_watercourse: Optional[str] = None
+    last_updated: Optional[datetime] = None
 
 class Outflow(OutflowBase):
     id: int
-
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class WaterCompanyBase(BaseModel):
@@ -28,16 +26,13 @@ class WaterCompanyBase(BaseModel):
     website: Optional[str] = None
 
 class WaterCompany(WaterCompanyBase):
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class APIKeyCreate(BaseModel):
     active: bool
-    owner: Optional[str]
+    owner: Optional[str] = None
     
 class APIKey(APIKeyCreate):
     id: int
-    
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
