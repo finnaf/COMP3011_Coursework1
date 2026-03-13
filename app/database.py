@@ -23,3 +23,6 @@ def register_math_functions(dbapi_connection, connection_record):
         dbapi_connection.create_function("asin", 1, math.asin)
         dbapi_connection.create_function("radians", 1, math.radians)
         dbapi_connection.create_function("pow", 2, math.pow)
+
+def get_engine():
+    return engine

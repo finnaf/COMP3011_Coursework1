@@ -121,16 +121,20 @@ def create_outflow(db: Session, data: OutflowBase):
     db.refresh(obj)
     return obj
 
-def update_outflow(db: Session, id: int, data: dict):
+def update_outflow(db: Session, id: int, data: OutflowBase):
     DATETIME_FIELDS = {"status_start", "latest_event_start", "latest_event_end", "last_updated"}
 
     obj = get_outflow(db, id)
     if not obj:
         return None
-    for k, v in data.items():
+    
+    update_data = data.model_dump(exclude_unset=True)
+
+    for k, v in update_data.items():
         if k in DATETIME_FIELDS and isinstance(v, str):
             v = dateparser.parse(v)
         setattr(obj, k, v)
+        
     db.commit()
     db.refresh(obj)
     return obj
@@ -165,7 +169,7 @@ def get_api_key(db: Session, id: int):
 def rotate_api_key(db: Session, id: int):
     old = db.execute(select(APIKey).where(APIKey.id == id)).scalar_one_or_none()
     if not old:
-        return None
+        return None, None
 
     user_key, hashed_key = generate_api_key()
     new_key = APIKey(

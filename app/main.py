@@ -79,10 +79,11 @@ def read_outflow(id: int, db: Session = Depends(get_db)):
 def create_outflow(data: schemas.OutflowBase, db: Session = Depends(get_db)):
     return crud.create_outflow(db, data)
 
-@app.put("/outflows/{id}", 
+@app.put("/outflows/{id}",
+    response_model=schemas.Outflow,
     dependencies=[Depends(security.verify_api_key)],
     status_code=200)
-def update_outflow(id: int, data: dict, db: Session = Depends(get_db)):
+def update_outflow(id: int, data: schemas.OutflowBase, db: Session = Depends(get_db)):
     updated = crud.update_outflow(db, id, data)
     if not updated:
         raise HTTPException(404, "Not found")
@@ -161,7 +162,7 @@ def rotate_key(id: int, db: Session = Depends(get_db)):
     '''
     user_key, db_key = crud.rotate_api_key(db, id)
     if not (user_key or db_key):
-        return HTTPException(404, "API key not found")
+        raise HTTPException(404, "API key not found")
     return JSONResponse(
         {"id": db_key.id, "key": user_key, "owner": db_key.owner, "active": db_key.active},
         status_code=201
