@@ -1,9 +1,12 @@
 from typing import Optional
-from fastapi import FastAPI, Depends, HTTPException, Response
+from fastapi import FastAPI, Depends, HTTPException, Response, Request
 from fastapi.exceptions import ResponseValidationError, RequestValidationError
 from fastapi.responses import JSONResponse
 from contextlib import asynccontextmanager
 from sqlalchemy.orm import Session
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
 
 from app import crud, schemas, security
 from app.database import SessionLocal, engine
@@ -46,12 +49,21 @@ async def lifespan(_: FastAPI):
 
 app = FastAPI(lifespan=lifespan, title="UK Storm Overflow API")
 
+# rate limiter on public routes
+limiter = Limiter(key_func=get_remote_address)
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+FAST_LIMITER_RATE = "15/minute"
+SLOW_LIMITER_RATE = "4/minute"
+
 
 # outflows
 @app.get("/outflows/", 
     response_model=list[schemas.Outflow],
     status_code=200)
+@limiter.limit(FAST_LIMITER_RATE)
 def read_outflows(
+    request: Request,
     company: Optional[str] = None,
     watercourse: Optional[str] = None,
     lat: Optional[float] = None,
@@ -66,7 +78,8 @@ def read_outflows(
 @app.get("/outflows/{id}",
     response_model=schemas.Outflow,
     status_code=200)
-def read_outflow(id: int, db: Session = Depends(get_db)):
+@limiter.limit(FAST_LIMITER_RATE)
+def read_outflow(request: Request, id: int, db: Session = Depends(get_db)):
     result = crud.get_outflow(db, id)
     if not result:
         raise HTTPException(404, "Not found")
@@ -101,7 +114,9 @@ def delete_outflow(id: int, db: Session = Depends(get_db)):
 @app.get("/companies/", 
     response_model=list[schemas.WaterCompany],
     status_code=200)
+@limiter.limit(FAST_LIMITER_RATE)
 def read_companies(
+    request: Request,
     name: Optional[str] = None,
     region: Optional[str] = None,
     limit: int = 100,
@@ -113,7 +128,8 @@ def read_companies(
 @app.get("/companies/{ticker}", 
     response_model=schemas.WaterCompany,
     status_code=200)
-def read_company(ticker: str, db: Session = Depends(get_db)):
+@limiter.limit(FAST_LIMITER_RATE)
+def read_company(request: Request, ticker: str, db: Session = Depends(get_db)):
     result = crud.get_company(db, ticker)
     if not result:
         raise HTTPException(404, "Not found")
@@ -183,7 +199,8 @@ def foo():
     return Response(status_code=200)
 
 @app.get("/stats/outflows/", status_code=200)
-def read_outflow_stats(db: Session = Depends(get_db)):
+@limiter.limit(SLOW_LIMITER_RATE)
+def read_outflow_stats(request: Request, db: Session = Depends(get_db)):
     stats = get_outflow_stats(db)
     
     active_pct = (stats.active_now / stats.total_sites * 100) if stats.total_sites > 0 else 0
@@ -207,7 +224,8 @@ def read_outflow_stats(db: Session = Depends(get_db)):
 @app.get("/stats/companies", 
     response_model=list[schemas.CompanyStats],
     status_code=200)
-def get_companies_stats(db: Session = Depends(get_db)):
+@limiter.limit(SLOW_LIMITER_RATE)
+def get_companies_stats(request: Request, db: Session = Depends(get_db)):
     return get_company_performance_stats(db)
 
 
