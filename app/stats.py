@@ -43,3 +43,24 @@ def get_outflow_stats(db: Session):
         
         func.max(Outflow.last_updated).label("last_sync")
     ).first()
+
+def get_general_stats(db: Session):
+    return db.query(
+        func.count(Outflow.id).label("total_records"),
+        func.min(Outflow.latest_event_start).label("earliest_event"),
+        func.max(Outflow.latest_event_start).label("latest_event"),
+        func.min(Outflow.latitude).label("lat_min"),
+        func.max(Outflow.latitude).label("lat_max"),
+        func.min(Outflow.longitude).label("lon_min"),
+        func.max(Outflow.longitude).label("lon_max"),
+        func.avg(
+            func.julianday(Outflow.latest_event_end) - 
+            func.julianday(Outflow.latest_event_start)
+        ).label("avg_duration_days")
+    ).first()
+
+def get_top_watercourse(db: Session):
+    return db.query(
+        Outflow.receiving_watercourse,
+        func.count(Outflow.id).label("count")
+    ).group_by(Outflow.receiving_watercourse).order_by(func.count(Outflow.id).desc()).first()

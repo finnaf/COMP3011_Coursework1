@@ -98,14 +98,15 @@ def sample_outflow(client, auth, sample_company):
     assert r.status_code == 201
     return r.json()
 
-
-# health check
 class TestRoot:
+    def test_stats_root_structure(self, client, sample_outflow):
+        body = client.get("/stats").json()
+        assert "dataset" in body
+        assert "total_companies" in body["dataset"]
+        assert "most_affected_watercourse" in body["dataset"]
+    
     def test_root_returns_200(self, client):
         assert client.get("/").status_code == 200
-
-    def test_stats_root_returns_200(self, client):
-        assert client.get("/stats").status_code == 200
 
 
 # authentication

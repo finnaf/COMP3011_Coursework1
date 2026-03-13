@@ -14,6 +14,7 @@ from app.models import Base, Outflow
 from app.utils.import_csv import import_csv
 from app.security import get_db
 from app.stats import get_company_performance_stats, get_outflow_stats
+from app.stats import get_general_stats, get_top_watercourse
 import os
 
 # on startup
@@ -191,12 +192,30 @@ def delete_key(id: int, db: Session = Depends(get_db)):
         raise HTTPException(404, "Not found")
     return Response(status_code=204)
 
-
 # stats
-@app.get("/")
 @app.get("/stats")
-def foo():
-    return Response(status_code=200)
+@limiter.limit(SLOW_LIMITER_RATE)
+def get_stats(request: Request, db: Session = Depends(get_db)):
+    companies = get_company_performance_stats(db)
+    general = get_general_stats(db)
+    top = get_top_watercourse(db)
+    return {
+        "dataset": {
+            "total_records": general.total_records,
+            "total_companies": len(companies),
+            "earliest_event": general.earliest_event,
+            "latest_event": general.latest_event,
+            "bounding_box": {
+                "lat": [general.lat_min, general.lat_max],
+                "lon": [general.lon_min, general.lon_max],
+            },
+            "avg_discharge_hours": round((general.avg_duration_days or 0) * 24, 1),
+            "most_affected_watercourse": {
+                "name": top.receiving_watercourse,
+                "occurrences": top.count
+            }
+        },
+    }
 
 @app.get("/stats/outflows/", status_code=200)
 @limiter.limit(SLOW_LIMITER_RATE)
@@ -243,6 +262,11 @@ def get_company_stats(request: Request, ticker: str, db: Session = Depends(get_d
     
     return stats
 
+
+# health check
+@app.get("/")
+def health_check():
+    return Response(status_code=200)
 
 # exception handlers
 @app.exception_handler(RequestValidationError)
