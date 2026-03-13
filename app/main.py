@@ -193,7 +193,7 @@ def delete_key(id: int, db: Session = Depends(get_db)):
     return Response(status_code=204)
 
 # stats
-@app.get("/stats")
+@app.get("/stats", status_code=200)
 @limiter.limit(SLOW_LIMITER_RATE)
 def get_stats(request: Request, db: Session = Depends(get_db)):
     companies = get_company_performance_stats(db)
