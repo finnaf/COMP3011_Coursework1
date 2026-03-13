@@ -48,7 +48,7 @@ async def lifespan(_: FastAPI):
     db.close()
     yield
 
-app = FastAPI(lifespan=lifespan, title="UK Storm Overflow API")
+app = FastAPI(lifespan=lifespan, title="England Storm Overflow API")
 
 # rate limiter on public routes
 limiter = Limiter(key_func=get_remote_address)

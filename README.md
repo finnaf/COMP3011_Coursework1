@@ -1,4 +1,4 @@
-# UK Storm Overflow API
+# England Storm Overflow API
 
 A RESTful API for querying real-time and historical storm overflow (sewage discharge) 
 data across England's nine regional water companies. Built with FastAPI and SQLite.
