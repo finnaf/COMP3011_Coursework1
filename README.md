@@ -37,26 +37,26 @@ https://comp3011-coursework1-vdc3.onrender.com/
 
 ## Endpoints
 
-| Method | Path | Description |
-|--------|------|-------------|
-| GET | `/` | Health check |
-| GET | `/outflows/` | List outflows, with optional filtering |
-| GET | `/outflows/{id}` | Get a single outflow by ID |
-| POST | `/outflows/` | Create an outflow (auth required) |
-| PATCH | `/outflows/{id}` | Update an outflow (auth required) |
-| DELETE | `/outflows/{id}` | Delete an outflow (auth required) |
-| GET | `/companies/` | List water companies |
-| GET | `/companies/{ticker}` | Get a company by ticker |
-| POST | `/companies/` | Create a company (auth required) |
-| PATCH | `/companies/{ticker}` | Update a company (auth required) |
-| DELETE | `/companies/{ticker}` | Delete a company (auth required) |
-| POST | `/auth/keys` | Create an API key (admin required) |
-| PUT | `/auth/keys/{id}` | Rotate an API key (admin required) |
-| DELETE | `/auth/keys/{id}` | Delete an API key (admin required) |
-| GET | `/stats` | General dataset statistics |
-| GET | `/stats/outflows/` | Outflow summary statistics |
-| GET | `/stats/companies` | Per-company performance statistics |
-| GET | `/stats/companies/{ticker}` | Statistics for a single company |
+| Method | Path | Description | Authorisation |
+|--------|------|-------------|------|
+| GET | `/` | Health check | No |
+| GET | `/outflows/` | List outflows, with optional filtering | No |
+| GET | `/outflows/{id}` | Get a single outflow by ID | No |
+| POST | `/outflows/` | Create an outflow | Yes |
+| PATCH | `/outflows/{id}` | Update an outflow | Yes |
+| DELETE | `/outflows/{id}` | Delete an outflow | Yes |
+| GET | `/companies/` | List water companies | No |
+| GET | `/companies/{ticker}` | Get a company by ticker | No |
+| POST | `/companies/` | Create a company | Yes |
+| PATCH | `/companies/{ticker}` | Update a company | Yes |
+| DELETE | `/companies/{ticker}` | Delete a company | Yes |
+| POST | `/auth/keys` | Create an API key | Admin |
+| PUT | `/auth/keys/{id}` | Rotate an API key | Admin |
+| DELETE | `/auth/keys/{id}` | Delete an API key | Admin |
+| GET | `/stats` | General dataset statistics | No |
+| GET | `/stats/outflows/` | Outflow summary statistics | No |
+| GET | `/stats/companies` | Per-company performance statistics | No |
+| GET | `/stats/companies/{ticker}` | Statistics for a single company | No |
 
 Full documentation available at `/docs` (Swagger UI) or `/redoc` (Redocly).
 
