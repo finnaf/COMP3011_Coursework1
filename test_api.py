@@ -205,12 +205,12 @@ class TestCompanies:
     def test_update_company(self, client, auth):
         # Create a throwaway company to update
         client.post("/companies/", json={"ticker": "UPD", "name": "Update Me", "region": "Old"}, headers=auth)
-        r = client.put("/companies/UPD", json={"region": "New Region"}, headers=auth)
+        r = client.patch("/companies/UPD", json={"region": "New Region"}, headers=auth)
         assert r.status_code == 200
         assert r.json()["region"] == "New Region"
 
     def test_update_nonexistent_company_404(self, client, auth):
-        r = client.put("/companies/ZZZ", json={"name": "Ghost"}, headers=auth)
+        r = client.patch("/companies/ZZZ", json={"name": "Ghost"}, headers=auth)
         assert r.status_code == 404
 
     def test_delete_company(self, client, auth):
@@ -277,18 +277,18 @@ class TestOutflows:
 
     def test_update_outflow(self, client, auth, sample_outflow):
         oid = sample_outflow["id"]
-        r = client.put(f"/outflows/{oid}", json={"status": 1}, headers=auth)
+        r = client.patch(f"/outflows/{oid}", json={"status": 1}, headers=auth)
         assert r.status_code == 200
         assert r.json()["status"] == 1
 
     def test_update_outflow_datetime_field(self, client, auth, sample_outflow):
         oid = sample_outflow["id"]
-        r = client.put(f"/outflows/{oid}", json={"latest_event_start": "2024-03-15T08:00:00"}, headers=auth)
+        r = client.patch(f"/outflows/{oid}", json={"latest_event_start": "2024-03-15T08:00:00"}, headers=auth)
         assert r.status_code == 200
         assert r.json()["latest_event_start"] is not None
 
     def test_update_nonexistent_outflow_404(self, client, auth):
-        r = client.put("/outflows/999999", json={"status": 1}, headers=auth)
+        r = client.patch("/outflows/999999", json={"status": 1}, headers=auth)
         assert r.status_code == 404
 
     def test_delete_outflow(self, client, auth):

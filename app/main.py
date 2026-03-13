@@ -54,7 +54,7 @@ limiter = Limiter(key_func=get_remote_address)
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 FAST_LIMITER_RATE = "15/minute"
-SLOW_LIMITER_RATE = "4/minute"
+SLOW_LIMITER_RATE = "5/minute"
 
 
 # outflows
@@ -92,7 +92,7 @@ def read_outflow(request: Request, id: int, db: Session = Depends(get_db)):
 def create_outflow(data: schemas.OutflowBase, db: Session = Depends(get_db)):
     return crud.create_outflow(db, data)
 
-@app.put("/outflows/{id}",
+@app.patch("/outflows/{id}",
     response_model=schemas.Outflow,
     dependencies=[Depends(security.verify_api_key)],
     status_code=200)
@@ -145,7 +145,7 @@ def create_company(data: schemas.WaterCompanyBase, db: Session = Depends(get_db)
         raise HTTPException(400, f"Company with ticker '{data.ticker}' already exists")
     return crud.create_company(db, data)
 
-@app.put("/companies/{ticker}", 
+@app.patch("/companies/{ticker}", 
     response_model=schemas.WaterCompany,
     dependencies=[Depends(security.verify_api_key)],
     status_code=200)
@@ -227,6 +227,21 @@ def read_outflow_stats(request: Request, db: Session = Depends(get_db)):
 @limiter.limit(SLOW_LIMITER_RATE)
 def get_companies_stats(request: Request, db: Session = Depends(get_db)):
     return get_company_performance_stats(db)
+
+@app.get("/stats/companies/{ticker}", 
+    response_model=schemas.CompanyStats,
+    status_code=200)
+@limiter.limit(SLOW_LIMITER_RATE)
+def get_company_stats(request: Request, ticker: str, db: Session = Depends(get_db)):
+    stats = get_company_performance_stats(db, ticker=ticker)
+    
+    if not stats:
+        raise HTTPException(
+            status_code=404, 
+            detail=f"No stats found for company ticker: {ticker}"
+        )
+    
+    return stats
 
 
 # exception handlers
